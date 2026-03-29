@@ -1,7 +1,19 @@
-# React Admin Dashboard
+# Pyxis Dashboard
 
-Build a COMPLETE React Admin Dashboard App | React, Material UI, Data Grid, Light & Dark Mode
+Maritime pilot transfer safety dashboard — a full-screen HMI for pilot boat captains.
 
-Video: https://www.youtube.com/watch?v=wYpCWwD1oz0
+## Features
+- Dual camera feeds (Jetson YOLO inference + local Arducam)
+- Real-time distance monitoring via LiDAR
+- CV bounding box overlays
+- Safety alert system (danger/caution zones)
+- WebSocket bridge for ROS2 sensor data
+- Optimised for Raspberry Pi 5 deployment
 
-For all related questions and discussions about this project, check out the discord: https://discord.gg/2FfPeEk2mX
+## Architecture
+- **Frontend:** React 18 + MUI v5, production build served as static files
+- **Camera Streams:** GStreamer pipelines with Python MJPEG/snapshot HTTP servers
+- **Data Bridge:** Python WebSocket server aggregating ROS2 topics and UDP detections
+- **Inference:** YOLO v11m on Jetson, streamed via H264 RTP over LAN
+
+## Team Pyxis
