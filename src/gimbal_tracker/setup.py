@@ -24,7 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-	    'gimbal_tracker = gimbal_tracker.gimbal_tracker_yaw:main',	
+	    'gimbal_tracker           = gimbal_tracker.gimbal_tracker_yaw:main',
+	    'gimbal_tracker_pitch_yaw = gimbal_tracker.gimbal_tracker_pitch_yaw:main',
         ],
     },
 )
