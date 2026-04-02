@@ -5,19 +5,17 @@ Scan Filter Node
 - Keeps only the starboard-facing arc pointing toward the sea/cargo
 - Publishes filtered scan on /scan/filtered
 
-ANGLE CONVENTION (after 180 roll correction, looking from above):
-  0°   = bow (forward)
-  90°  = port (left)
-  -90° = starboard (right) ← cargo ship docks here
-  180° = stern (back)
+ANGLE CONVENTION (LiDAR mounted upside-down, Z pointing down):
+  With Z-down (upside-down mount, USB toward stern):
+  Starboard angles are NEGATIVE:
+    0°    = bow (forward)
+    -90°  = starboard (right) ← cargo ship docks here
+    -180° = stern (back)
+    +90°  = port (left)
 
-CABIN_MASK: the arc pointing inward through the ferry roof.
-  Tune CABIN_MIN_DEG and CABIN_MAX_DEG after installation by
-  checking raw /scan in RViz and identifying which angles hit the cabin.
-
-OUTWARD_ARC: the 180° facing the sea.
-  Default: -180° to 0° = starboard half
-  Tune OUTWARD_MIN_DEG and OUTWARD_MAX_DEG to match your install.
+OUTWARD_ARC: the 180° facing the cargo ship (starboard).
+  Default: -180° to 0° = starboard half (aft through stbd to fwd)
+  Tune OUTWARD_MIN_DEG and OUTWARD_MAX_DEG after install via RViz.
 """
 
 import rclpy
@@ -33,9 +31,10 @@ class ScanFilterNode(Node):
 
         # ── Tunable parameters ─────────────────────────────────────────
         # Arc to KEEP (outward facing / starboard side toward cargo)
+        # Z-down mount: starboard is negative. 0°=fwd, -90°=stbd, -180°=aft
         # Adjust these after checking raw scan in RViz on the boat
-        self.declare_parameter('outward_min_deg', -180.0)  # starboard start
-        self.declare_parameter('outward_max_deg',    0.0)  # starboard end
+        self.declare_parameter('outward_min_deg', -180.0)  # aft (through starboard)
+        self.declare_parameter('outward_max_deg',    0.0)  # forward
 
         # Range limits - ignore readings outside these (metres)
         self.declare_parameter('min_range',   0.3)   # ignore reflections < 30cm

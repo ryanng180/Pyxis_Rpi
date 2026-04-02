@@ -42,12 +42,12 @@ ros2 launch storm32_gimbal gimbal_launch.py
 exec bash
 "
 
-# Terminal 5: Gimbal tracker
+# Terminal 5: Gimbal tracker (pitch + yaw)
 gnome-terminal -- bash -c "
 source /opt/ros/jazzy/setup.bash
 source ~/ros2_ws/install/setup.bash
-echo 'Launching gimbal tracker...'
-ros2 run gimbal_tracker gimbal_tracker
+echo 'Launching gimbal tracker (pitch+yaw)...'
+ros2 run gimbal_tracker gimbal_tracker_pitch_yaw
 exec bash
 "
 

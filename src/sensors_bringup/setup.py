@@ -30,6 +30,10 @@ setup(
             'tilt_tf_node     = sensors_bringup.tilt_tf_node:main',
             'scan_filter_node = sensors_bringup.scan_filter_node:main',
             'proximity_node   = sensors_bringup.proximity_node:main',
+            'scan_transform_node   = sensors_bringup.scan_transform_node:main',
+            'ladder_distance_node  = sensors_bringup.ladder_distance_node:main',
+            'gimbal_angle_node     = sensors_bringup.gimbal_angle_node:main',
+            'cargo_approach_node   = sensors_bringup.cargo_approach_node:main',
         ],
     },
 )

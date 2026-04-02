@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import math
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Imu
@@ -53,6 +54,22 @@ class ImuNode(Node):
 
             ax, ay, az = float(parts[0]), float(parts[1]), float(parts[2])
             gx, gy, gz = float(parts[3]), float(parts[4]), float(parts[5])
+
+            # Convert from Arduino Nano 33 BLE native units to SI
+            # (required by imu_filter_madgwick and sensor_msgs/Imu spec)
+            ax *= 9.80665       # G → m/s²
+            ay *= 9.80665
+            az *= 9.80665
+            gx = math.radians(gx)  # deg/s → rad/s
+            gy = math.radians(gy)
+            gz = math.radians(gz)
+
+            # Correct for upside-down mount (face-down, USB toward stern).
+            # This is a 180° rotation around the Y-axis: negate x and z.
+            ax = -ax
+            az = -az
+            gx = -gx
+            gz = -gz
 
             msg = Imu()
             msg.header.stamp                       = self.get_clock().now().to_msg()
