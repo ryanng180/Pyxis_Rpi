@@ -66,10 +66,10 @@ const CameraFeed = forwardRef(({ source, label }, ref) => {
           left: 12,
           zIndex: 10,
           color: "#fff",
-          fontSize: "13px",
+          fontSize: "16px",
           fontWeight: 600,
           textTransform: "uppercase",
-          letterSpacing: "0.5px",
+          letterSpacing: "1.5px",
           opacity: 0.7,
           textShadow: "0 1px 3px rgba(0,0,0,0.8)",
         }}
@@ -110,7 +110,7 @@ const CameraFeed = forwardRef(({ source, label }, ref) => {
           <Typography
             sx={{
               color: "#555",
-              fontSize: "18px",
+              fontSize: "20px",
               fontWeight: 600,
               letterSpacing: "2px",
             }}

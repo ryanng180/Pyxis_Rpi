@@ -23,15 +23,15 @@ const ProximityOverlay = ({ distance = 3.0, width, height }) => {
     ctx.clearRect(0, 0, width, height);
 
     const zones = [
-      { max: DISTANCE_ZONES.safe.max, color: DISTANCE_ZONES.safe.color },
-      { max: DISTANCE_ZONES.caution.max, color: DISTANCE_ZONES.caution.color },
+      { max: DISTANCE_ZONES.closing.max, color: DISTANCE_ZONES.closing.color },
+      { max: DISTANCE_ZONES.optimal.max, color: DISTANCE_ZONES.optimal.color },
       { max: DISTANCE_ZONES.danger.max, color: DISTANCE_ZONES.danger.color },
     ];
 
-    // Determine active zone
-    let activeZoneIdx = 0; // safe
+    // Determine active zone (outer=closing, middle=optimal, inner=danger)
+    let activeZoneIdx = 0; // closing
     if (distance <= DISTANCE_ZONES.danger.max) activeZoneIdx = 2;
-    else if (distance <= DISTANCE_ZONES.caution.max) activeZoneIdx = 1;
+    else if (distance <= DISTANCE_ZONES.optimal.max) activeZoneIdx = 1;
 
     const drawArcs = (cx, cy, startAngle, endAngle, flip) => {
       const arcCount = zones.length;

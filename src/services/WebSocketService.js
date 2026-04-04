@@ -83,6 +83,12 @@ class WebSocketService {
     };
   }
 
+  send(data) {
+    if (this.ws && this.connected) {
+      this.ws.send(JSON.stringify(data));
+    }
+  }
+
   getLastMessage() {
     return this.lastMessage;
   }
