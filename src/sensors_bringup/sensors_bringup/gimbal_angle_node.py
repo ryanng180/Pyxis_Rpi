@@ -43,7 +43,7 @@ class GimbalAngleNode(Node):
         super().__init__('gimbal_angle_node')
 
         self.declare_parameter('camera_orientation_topic',
-                               '/gimbal/control/camera_orientation')
+                               '/gimbal/controller/camera_orientation')
         self.declare_parameter('base_frame',   'base_link')
         self.declare_parameter('gimbal_frame', 'gimbal_camera_link')
 

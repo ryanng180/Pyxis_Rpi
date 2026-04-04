@@ -22,7 +22,7 @@ class ImuNode(Node):
         self.pub = self.create_publisher(Imu, '/imu/data_raw', 10)
         self.ser = None
         self._connect()
-        self.create_timer(0.001, self._read)
+        self.create_timer(0.02, self._read)
 
     def _connect(self):
         while True:

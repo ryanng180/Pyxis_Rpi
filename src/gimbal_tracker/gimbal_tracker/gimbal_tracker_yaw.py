@@ -81,13 +81,13 @@ class Config:
     PAN_KD              = 0.15
 
     # --- Sea-state low-pass filter (0 < alpha <= 1, lower = smoother) ---
-    SMOOTHING_ALPHA     = 0.3
+    SMOOTHING_ALPHA     = 0.7
 
     # --- Confidence gate: ignore detections below this threshold ---
     MIN_CONFIDENCE      = 0.30
 
     # --- Staleness: ignore packets older than this (seconds) ---
-    MAX_DETECTION_AGE_S = 0.5
+    MAX_DETECTION_AGE_S = 0.2
 
     # --- ROS2 topic names ---
     TOPIC_GIMBAL_CMD    = "/gimbal/controller/target_orientation"
@@ -97,7 +97,7 @@ class Config:
     GIMBAL_UNLIMITED    = False
 
     # --- ROS2 publish rate (Hz) ---
-    PUBLISH_RATE_HZ     = 30
+    PUBLISH_RATE_HZ     = 60
 
 
 # ---------------------------------------------------------------------------
@@ -279,7 +279,8 @@ class GimbalTrackerNode(Node):
         super().__init__("gimbal_tracker")
 
         qos = QoSProfile(
-            reliability = ReliabilityPolicy.RELIABLE,
+            # reliability = ReliabilityPolicy.RELIABLE,
+            reliability = ReliabilityPolicy.BEST_EFFORT,
             history     = HistoryPolicy.KEEP_LAST,
             depth       = 1,
         )

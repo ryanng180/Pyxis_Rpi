@@ -34,6 +34,7 @@ setup(
             'ladder_distance_node  = sensors_bringup.ladder_distance_node:main',
             'gimbal_angle_node     = sensors_bringup.gimbal_angle_node:main',
             'cargo_approach_node   = sensors_bringup.cargo_approach_node:main',
+            'phase_manager_node   = sensors_bringup.phase_manager_node:main',
         ],
     },
 )

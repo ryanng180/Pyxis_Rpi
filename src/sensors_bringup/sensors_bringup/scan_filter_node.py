@@ -5,16 +5,16 @@ Scan Filter Node
 - Keeps only the starboard-facing arc pointing toward the sea/cargo
 - Publishes filtered scan on /scan/filtered
 
-ANGLE CONVENTION (LiDAR mounted upside-down, Z pointing down):
-  With Z-down (upside-down mount, USB toward stern):
-  Starboard angles are NEGATIVE:
+ANGLE CONVENTION (LiDAR mounted upside-down, inverted:True in driver):
+  With inverted:True, the published scan runs -180° to +180°.
+  Starboard angles are POSITIVE:
     0°    = bow (forward)
-    -90°  = starboard (right) ← cargo ship docks here
-    -180° = stern (back)
-    +90°  = port (left)
+    +90°  = starboard (right) ← cargo ship docks here
+    +180° = stern (back)
+    -90°  = port (left)
 
 OUTWARD_ARC: the 180° facing the cargo ship (starboard).
-  Default: -180° to 0° = starboard half (aft through stbd to fwd)
+  Default: 0° to 180° = starboard half (fwd through stbd to aft)
   Tune OUTWARD_MIN_DEG and OUTWARD_MAX_DEG after install via RViz.
 """
 
@@ -31,10 +31,10 @@ class ScanFilterNode(Node):
 
         # ── Tunable parameters ─────────────────────────────────────────
         # Arc to KEEP (outward facing / starboard side toward cargo)
-        # Z-down mount: starboard is negative. 0°=fwd, -90°=stbd, -180°=aft
+        # inverted mount: starboard is positive. 0°=fwd, +90°=stbd, +180°=aft
         # Adjust these after checking raw scan in RViz on the boat
-        self.declare_parameter('outward_min_deg', -180.0)  # aft (through starboard)
-        self.declare_parameter('outward_max_deg',    0.0)  # forward
+        self.declare_parameter('outward_min_deg',   0.0)  # forward (bow)
+        self.declare_parameter('outward_max_deg', 180.0)  # aft (through starboard)
 
         # Range limits - ignore readings outside these (metres)
         self.declare_parameter('min_range',   0.3)   # ignore reflections < 30cm

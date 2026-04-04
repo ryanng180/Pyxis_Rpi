@@ -56,13 +56,12 @@ HULL_LENGTH_M         =  13.053   # bow transition to rear
 # ── Hull offset: perpendicular distance from LiDAR to hull edge ──────────
 HULL_OFFSET_M = abs(STARBOARD_HULL_Y) - abs(LIDAR_MOUNT_Y)  # ~1.077m
 
-# ── Scan filter arc (degrees) ────────────────────────────────────────────
-# LiDAR is mounted upside-down (Z pointing down, USB toward stern).
-# With Z-down, starboard angles are NEGATIVE.
-# Full starboard arc: -180° to 0°
-SCAN_ARC_MIN_DEG = -180.0   # aft (through starboard)
-SCAN_ARC_MAX_DEG =    0.0   # forward
-# Note: tune these after physical install by checking RViz
+# ── Scan arc (degrees, in LiDAR scan convention) ────────────────────────
+# LiDAR mounted upside-down with inverted:True in driver.
+# Actual scan convention: 0°=bow, +90°=starboard, +180°=stern, -90°=port.
+# Full starboard arc: 0° to 180°
+SCAN_ARC_MIN_DEG =    0.0   # forward (bow)
+SCAN_ARC_MAX_DEG =  180.0   # aft (through starboard)
 
 
 def get_lidar_angle(gimbal_yaw_deg: float,

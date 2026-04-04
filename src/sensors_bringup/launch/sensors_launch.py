@@ -89,8 +89,8 @@ def generate_launch_description():
             name='scan_filter_node',
             output='screen',
             parameters=[{
-                'outward_min_deg':   60.0,  #0.0,   # forward
-                'outward_max_deg': 120.0,   #180.0,   # aft (through starboard)
+                'outward_min_deg':  80.0,    # tabletop testing
+                'outward_max_deg': 100.0,   # tabletop testing
                 'min_range':  0.3,
                 'max_range': 16.0,
             }]
@@ -122,8 +122,9 @@ def generate_launch_description():
             name='ladder_distance_node',
             output='screen',
             parameters=[{
-                'gimbal_orientation_topic': '/gimbal/control/camera_orientation',
+                'gimbal_orientation_topic': '/gimbal/controller/camera_orientation',
                 'scan_topic':               '/scan/transformed',
+                'gimbal_yaw_offset_deg':    72.0,   # TEMP: manual offset for this session (drifts each startup without calibration)
             }]
         ),
 
@@ -156,11 +157,23 @@ def generate_launch_description():
                 'hull_rear_x':     -12.066,    # rear of hull (ROS x)
                 'lidar_x':         -0.01161,   # LiDAR mount position (ROS x)
                 'lidar_y':         -0.0457,    # LiDAR mount position (ROS y)
-                'profile_step_m':   0.5,       # sample every 0.5m along hull
-                'too_close_m':      0.3,
-                'too_far_m':        1.0,
+                'profile_step_m':   1.0,       # sample every 1m along hull
+                'too_close_m':      0.3,       # placeholder
+                'too_far_m':        1.0,       # placeholder
                 'min_points':       10,
+                'min_r_squared':    0.7,
             }]
+        ),
+
+        # ── Phase Manager Node ────────────────────────────────────────
+        # Observes proximity data, determines operational phase with
+        # debounced transitions. Publishes /system/phase for dashboard
+        # and gimbal tracker. Pure observer — safe to add/remove.
+        Node(
+            package='sensors_bringup',
+            executable='phase_manager_node',
+            name='phase_manager_node',
+            output='screen',
         ),
 
         # ── Gimbal Angle Node ─────────────────────────────────────────
@@ -174,7 +187,7 @@ def generate_launch_description():
             name='gimbal_angle_node',
             output='screen',
             parameters=[{
-                'camera_orientation_topic': '/gimbal/control/camera_orientation',
+                'camera_orientation_topic': '/gimbal/controller/camera_orientation',
                 'base_frame':   'base_link',
                 'gimbal_frame': 'gimbal_camera_link',
             }]

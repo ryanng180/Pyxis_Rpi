@@ -57,7 +57,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from arcros_interface.msg import GimbalOrientation
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Bool, Float32MultiArray, String
 
 
 # ---------------------------------------------------------------------------
@@ -109,12 +109,19 @@ class Config:
     # --- ROS2 topic names ---
     TOPIC_GIMBAL_CMD    = "/gimbal/controller/target_orientation"
     TOPIC_GIMBAL_DEBUG  = "/storm32/debug"   # [yaw_cmd, pitch_cmd, confidence, cx_norm, cy_norm, yaw_error, pitch_error]
+    TOPIC_TARGET_LOCKED = "/gimbal/target_locked"
+
+    # --- Target lock: bbox centre must be within 0.5 ± this to count as locked ---
+    LOCK_CENTER_THRESH  = 0.15   # cx_norm in [0.35, 0.65]
 
     # --- Gimbal unlimited mode: False = respect OlliW-configured STorM32 limits ---
     GIMBAL_UNLIMITED    = False
 
     # --- ROS2 publish rate (Hz) ---
     PUBLISH_RATE_HZ     = 60
+
+    # Startup calibration removed — offset is now computed live
+    # in ladder_distance_node from tracking data.
 
 
 # ---------------------------------------------------------------------------
@@ -329,6 +336,19 @@ class GimbalTrackerNode(Node):
             GimbalOrientation, Config.TOPIC_GIMBAL_CMD, qos)
         self._pub_debug = self.create_publisher(
             Float32MultiArray, Config.TOPIC_GIMBAL_DEBUG, qos)
+        self._pub_lock  = self.create_publisher(
+            Bool, Config.TOPIC_TARGET_LOCKED, qos)
+
+        # Startup calibration removed — offset computed live in ladder_distance_node
+
+        # Phase subscription — gate tracking based on operational phase
+        # If no phase messages received, defaults to tracking (safe fallback)
+        self._current_phase = None        # None = no phase manager running, track normally
+        self._phase_last_ts = 0.0
+        self._PHASE_STALE_S = 5.0         # if no phase msg for 5s, assume tracking
+        self._home_sent = False            # only send home position once per APPROACHING
+        self.create_subscription(
+            String, "/system/phase", self._phase_cb, 10)
 
         # UDP receiver
         self._udp = UDPReceiver()
@@ -360,14 +380,68 @@ class GimbalTrackerNode(Node):
             f"Pitch limit: ±{Config.TILT_LIMIT_DEG}°")
 
     # ------------------------------------------------------------------
+    def _phase_cb(self, msg):
+        old = self._current_phase
+        self._current_phase = msg.data
+        self._phase_last_ts = time.monotonic()
+        if old != self._current_phase:
+            self.get_logger().info(f"Phase changed: {old} -> {self._current_phase}")
+            if self._current_phase != "APPROACHING":
+                self._home_sent = False  # reset so we can re-home next time
+
+    def _is_approaching_phase(self):
+        """Check if we're in APPROACHING phase (should idle gimbal)."""
+        if self._current_phase is None:
+            return False  # no phase manager running, track normally
+        if time.monotonic() - self._phase_last_ts > self._PHASE_STALE_S:
+            return False  # stale phase data, track normally (safe fallback)
+        return self._current_phase == "APPROACHING"
+
+    def _send_home_position(self):
+        """Command gimbal to center (yaw=0, pitch=0) and hold."""
+        qx, qy, qz, qw = angles_to_quaternion(0.0, 0.0)
+        msg = GimbalOrientation()
+        msg.orientation.x = qx
+        msg.orientation.y = qy
+        msg.orientation.z = qz
+        msg.orientation.w = qw
+        msg.unlimited = False
+        self._pub_cmd.publish(msg)
+        # Reset PID state so tracking resumes cleanly
+        self._pan_pid.reset()
+        self._tilt_pid.reset()
+        self._first_det = True
+
+    # ------------------------------------------------------------------
     def _control_loop(self):
+
+        # Phase gating: during APPROACHING, send gimbal to home and idle
+        if self._is_approaching_phase():
+            if not self._home_sent:
+                self._send_home_position()
+                self._home_sent = True
+                self.get_logger().info("APPROACHING phase — gimbal sent to home position")
+            return
+
         frame = self._udp.get_latest()
 
         # Guard: no frame or stale
         if frame is None or not frame.is_fresh():
+            # No detection → unlock so ladder_distance_node stops publishing
+            lock_msg = Bool()
+            lock_msg.data = False
+            self._pub_lock.publish(lock_msg)
             return
 
         best = frame.best_detection()
+
+        # Publish target lock: True when ladder detected near frame centre
+        locked = (best is not None
+                  and abs(best.cx_norm - 0.5) <= Config.LOCK_CENTER_THRESH)
+        lock_msg = Bool()
+        lock_msg.data = locked
+        self._pub_lock.publish(lock_msg)
+
         if best is None:
             self.get_logger().debug(
                 f"No valid detection — holding position. "
