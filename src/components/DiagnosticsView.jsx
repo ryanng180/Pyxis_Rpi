@@ -19,7 +19,7 @@ const DiagCard = ({ title, children, span = 1 }) => (
   >
     <Typography
       sx={{
-        fontSize: "13px",
+        fontSize: "15px",
         fontWeight: 700,
         color: PYXIS_ACCENT,
         letterSpacing: "2px",
@@ -43,7 +43,7 @@ const DiagRow = ({ label, value, unit, color }) => (
       borderBottom: "1px solid #1a203520",
     }}
   >
-    <Typography sx={{ fontSize: "13px", color: "#889" }}>{label}</Typography>
+    <Typography sx={{ fontSize: "15px", color: "#889" }}>{label}</Typography>
     <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.5 }}>
       <Typography
         sx={{
@@ -56,7 +56,7 @@ const DiagRow = ({ label, value, unit, color }) => (
         {value ?? "---"}
       </Typography>
       {unit && (
-        <Typography sx={{ fontSize: "12px", color: "#667" }}>{unit}</Typography>
+        <Typography sx={{ fontSize: "14px", color: "#667" }}>{unit}</Typography>
       )}
     </Box>
   </Box>
@@ -110,9 +110,13 @@ const DiagnosticsView = ({
   boatRoll = null,
   lastUpdate = null,
   currentModel = null,
+  defaultModel = null,
   onSwitchModel,
+  onSetDefaultModel,
   onZeroHeading,
   onResetHeading,
+  calibrationMode,
+  onToggleCalibration,
 }) => {
   const ladderDetected = detections.some((d) => d.label?.toLowerCase() === "ladder");
 
@@ -124,6 +128,10 @@ const DiagnosticsView = ({
         gridTemplateColumns: "repeat(4, 1fr)",
         gap: 1.5,
         p: 2,
+        // Extra bottom padding so the user can scroll past the last
+        // card — useful when the alert banner pushes content up and
+        // would otherwise clip the bottom row out of frame.
+        pb: 12,
         overflow: "auto",
         minHeight: 0,
       }}
@@ -137,7 +145,7 @@ const DiagnosticsView = ({
         <StatusDot active={boatPitch !== null} label={boatPitch !== null ? "IMU Active" : "IMU No Data"} />
         <StatusDot active={approachProfile !== null} label={approachProfile ? "Approach Profile" : "No Profile"} />
         {lastUpdate && (
-          <Typography sx={{ fontSize: "12px", color: "#556", mt: 1 }}>
+          <Typography sx={{ fontSize: "14px", color: "#556", mt: 1 }}>
             Last: {new Date(lastUpdate * 1000).toLocaleTimeString("en-GB")}
           </Typography>
         )}
@@ -253,7 +261,7 @@ const DiagnosticsView = ({
             sx={{
               color: PYXIS_ACCENT,
               borderColor: PYXIS_ACCENT + "66",
-              fontSize: "12px",
+              fontSize: "14px",
               fontWeight: 700,
               letterSpacing: "1px",
               "&:hover": { borderColor: PYXIS_ACCENT, backgroundColor: PYXIS_ACCENT + "15" },
@@ -270,7 +278,7 @@ const DiagnosticsView = ({
               sx={{
                 color: "#dd8800",
                 borderColor: "#dd880066",
-                fontSize: "12px",
+                fontSize: "14px",
                 fontWeight: 700,
                 letterSpacing: "1px",
                 "&:hover": { borderColor: "#dd8800", backgroundColor: "#dd880015" },
@@ -311,6 +319,32 @@ const DiagnosticsView = ({
         />
       </DiagCard>
 
+      {/* Cam2 Reference Line Calibration */}
+      <DiagCard title="Cam2 Reference Calibration">
+        <Typography sx={{ fontSize: "14px", color: "#889", mb: 1.5, lineHeight: 1.4 }}>
+          Drag the reference line on Cam2 to mark the cargo hull edge.
+          Position persists across sessions. Recalibrate at each deployment.
+        </Typography>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={onToggleCalibration}
+          sx={{
+            color: calibrationMode ? "#00ff88" : PYXIS_ACCENT,
+            borderColor: (calibrationMode ? "#00ff88" : PYXIS_ACCENT) + "66",
+            fontSize: "14px",
+            fontWeight: 700,
+            letterSpacing: "1px",
+            "&:hover": {
+              borderColor: calibrationMode ? "#00ff88" : PYXIS_ACCENT,
+              backgroundColor: (calibrationMode ? "#00ff88" : PYXIS_ACCENT) + "15",
+            },
+          }}
+        >
+          {calibrationMode ? "CALIBRATION ACTIVE — CLICK TO FINISH" : "START CALIBRATION"}
+        </Button>
+      </DiagCard>
+
       {/* CV Detections */}
       <DiagCard title="CV Detections">
         <DiagRow label="Count" value={detections.length} />
@@ -323,7 +357,7 @@ const DiagnosticsView = ({
           />
         ))}
         {detections.length === 0 && (
-          <Typography sx={{ fontSize: "13px", color: "#556", mt: 0.5 }}>
+          <Typography sx={{ fontSize: "15px", color: "#556", mt: 0.5 }}>
             No detections
           </Typography>
         )}
@@ -336,67 +370,109 @@ const DiagnosticsView = ({
           value={currentModel || "unknown"}
           color={PYXIS_ACCENT}
         />
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1.5 }}>
+        <DiagRow
+          label="Boot Default"
+          value={defaultModel || "not set"}
+          color={defaultModel ? "#00ff88" : "#667"}
+        />
+        <Typography sx={{ fontSize: "15px", color: "#667", mt: 1, mb: 0.5, lineHeight: 1.4 }}>
+          Click model to hot-swap. Click ★ to set as boot default (persists across reboots).
+        </Typography>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 0.5 }}>
           {MODEL_OPTIONS.map((m) => {
             const isActive = currentModel === m.id;
+            const isDefault = defaultModel === m.id;
             const color = m.deprecated ? "#ff222288" : "#00ff88";
             return (
-              <Button
+              <Box
                 key={m.id}
-                variant="outlined"
-                size="small"
-                disabled={isActive}
-                onClick={() => onSwitchModel?.(m.id)}
-                sx={{
-                  justifyContent: "flex-start",
-                  textTransform: "none",
-                  color: isActive ? color : "#aab",
-                  borderColor: isActive ? color + "88" : "#334",
-                  backgroundColor: isActive ? color + "12" : "transparent",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  py: 0.8,
-                  "&:hover": {
-                    borderColor: color,
-                    backgroundColor: color + "15",
-                  },
-                  "&:disabled": {
-                    color: color,
-                    borderColor: color + "66",
-                    backgroundColor: color + "12",
-                  },
-                }}
+                sx={{ display: "flex", alignItems: "stretch", gap: 0.5 }}
               >
-                {m.label}
-                {m.deprecated && (
-                  <Typography
-                    component="span"
-                    sx={{
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      color: "#ff2222",
-                      ml: 1,
-                      letterSpacing: "1px",
-                    }}
-                  >
-                    DEPRECATED
-                  </Typography>
-                )}
-                {isActive && (
-                  <Typography
-                    component="span"
-                    sx={{
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      color,
-                      ml: 1,
-                      letterSpacing: "1px",
-                    }}
-                  >
-                    ACTIVE
-                  </Typography>
-                )}
-              </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  disabled={isActive}
+                  onClick={() => onSwitchModel?.(m.id)}
+                  sx={{
+                    flex: 1,
+                    justifyContent: "flex-start",
+                    textTransform: "none",
+                    color: isActive ? color : "#aab",
+                    borderColor: isActive ? color + "88" : "#334",
+                    backgroundColor: isActive ? color + "12" : "transparent",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    py: 0.8,
+                    "&:hover": {
+                      borderColor: color,
+                      backgroundColor: color + "15",
+                    },
+                    "&:disabled": {
+                      color: color,
+                      borderColor: color + "66",
+                      backgroundColor: color + "12",
+                    },
+                  }}
+                >
+                  {m.label}
+                  {m.deprecated && (
+                    <Typography
+                      component="span"
+                      sx={{
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color: "#ff2222",
+                        ml: 1,
+                        letterSpacing: "1px",
+                      }}
+                    >
+                      DEPRECATED
+                    </Typography>
+                  )}
+                  {isActive && (
+                    <Typography
+                      component="span"
+                      sx={{
+                        fontSize: "14px",
+                        fontWeight: 700,
+                        color,
+                        ml: 1,
+                        letterSpacing: "1px",
+                      }}
+                    >
+                      ACTIVE{isDefault ? " · DEFAULT" : " · SESSION"}
+                    </Typography>
+                  )}
+                </Button>
+                {/* Star — set as boot default */}
+                <Button
+                  variant="outlined"
+                  size="small"
+                  disabled={m.deprecated || isDefault}
+                  onClick={() => onSetDefaultModel?.(m.id)}
+                  title={isDefault ? "Current boot default" : "Set as boot default"}
+                  sx={{
+                    minWidth: "38px",
+                    px: 0,
+                    color: isDefault ? "#ffd24a" : "#556",
+                    borderColor: isDefault ? "#ffd24a66" : "#334",
+                    backgroundColor: isDefault ? "#ffd24a12" : "transparent",
+                    fontSize: "16px",
+                    "&:hover": {
+                      borderColor: "#ffd24a",
+                      backgroundColor: "#ffd24a15",
+                      color: "#ffd24a",
+                    },
+                    "&:disabled": {
+                      color: isDefault ? "#ffd24a" : "#334",
+                      borderColor: isDefault ? "#ffd24a66" : "#223",
+                      backgroundColor: isDefault ? "#ffd24a12" : "transparent",
+                    },
+                  }}
+                >
+                  {isDefault ? "★" : "☆"}
+                </Button>
+              </Box>
             );
           })}
         </Box>

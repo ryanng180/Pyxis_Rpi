@@ -27,6 +27,7 @@ const useMaritimeData = () => {
     // Gimbal
     gimbalYaw: null,
     gimbalPitch: null,
+    gimbalTargetLocked: false,    // /gimbal/target_locked — true when tracker has lock
     // Ladder
     ladderDistance: null,     // boarding gate distance (m)
     ladderStatus: null,      // full JSON from /ladder/status
@@ -41,8 +42,12 @@ const useMaritimeData = () => {
     cameraUrls: CAMERA_DEFAULTS,
     // System phase
     phase: null,             // "APPROACHING" | "ZONING" | "HOLDING"
+    // Spatial — cargo-side LiDAR points in boat frame + boat extents
+    cargoPoints: { hull_x: [], gap: [] },
+    boatGeometry: null,      // { bow_x, rear_x, starboard_y, lidar_x, lidar_y }
     // Jetson model
     currentModel: null,
+    defaultModel: null,      // persisted user preference (next-boot model)
     // Meta
     alertLevel: "none",      // "none" | "danger"
     lastUpdate: null,
@@ -51,6 +56,8 @@ const useMaritimeData = () => {
   const wsRef = useRef(null);
   const rafRef = useRef(null);
   const pendingDataRef = useRef(null);
+  const ladderLastSeenRef = useRef(0);       // timestamp of last valid ladder distance
+  const ladderTimerRef = useRef(null);        // 3s expiry timer
 
   // Throttled state update via requestAnimationFrame
   const processUpdate = useCallback(() => {
@@ -63,6 +70,22 @@ const useMaritimeData = () => {
       // Only TOO_CLOSE triggers an alert — TOO_FAR is informational (approaching)
       const alertLevel = zone === "TOO_CLOSE" ? "danger" : "none";
 
+      // Ladder 3s sliding window: update on new data, expire after 3s of silence
+      const hasNewLadder = msg.ladder?.distance !== undefined && msg.ladder.distance !== null;
+      let newLadderDistance = prev.ladderDistance;
+      let newLadderStatus = prev.ladderStatus;
+      if (hasNewLadder) {
+        newLadderDistance = msg.ladder.distance;
+        newLadderStatus = msg.ladder?.status !== undefined ? msg.ladder.status : prev.ladderStatus;
+        ladderLastSeenRef.current = Date.now();
+        // Reset the expiry timer
+        if (ladderTimerRef.current) clearTimeout(ladderTimerRef.current);
+        ladderTimerRef.current = setTimeout(() => {
+          setData((p) => ({ ...p, ladderDistance: null, ladderStatus: null }));
+          ladderTimerRef.current = null;
+        }, 3000);
+      }
+
       return {
         // Proximity
         distance: msg.lidar?.distance ?? prev.distance,
@@ -74,9 +97,10 @@ const useMaritimeData = () => {
         // Gimbal
         gimbalYaw: msg.gimbal?.yaw ?? prev.gimbalYaw,
         gimbalPitch: msg.gimbal?.pitch ?? prev.gimbalPitch,
-        // Ladder
-        ladderDistance: msg.ladder?.distance !== undefined ? msg.ladder.distance : prev.ladderDistance,
-        ladderStatus: msg.ladder?.status !== undefined ? msg.ladder.status : prev.ladderStatus,
+        gimbalTargetLocked: msg.gimbal?.target_locked ?? prev.gimbalTargetLocked,
+        // Ladder — 3s sliding window: show latest, expire if no new data
+        ladderDistance: newLadderDistance,
+        ladderStatus: newLadderStatus,
         // Approach
         approachHeading: msg.approach?.heading ?? prev.approachHeading,
         approachZone: msg.approach?.zone || prev.approachZone,
@@ -91,8 +115,12 @@ const useMaritimeData = () => {
         },
         // System phase
         phase: msg.phase || prev.phase,
+        // Spatial
+        cargoPoints: msg.spatial?.cargo_points || prev.cargoPoints,
+        boatGeometry: msg.spatial?.boat_geometry || prev.boatGeometry,
         // Jetson model
         currentModel: msg.current_model || prev.currentModel,
+        defaultModel: msg.default_model !== undefined ? msg.default_model : prev.defaultModel,
         // Meta
         alertLevel,
         lastUpdate: msg.timestamp || Date.now(),
@@ -126,6 +154,7 @@ const useMaritimeData = () => {
     return () => {
       ws.disconnect();
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (ladderTimerRef.current) clearTimeout(ladderTimerRef.current);
     };
   }, [processUpdate]);
 

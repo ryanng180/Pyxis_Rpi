@@ -68,22 +68,51 @@ const GuidancePanel = ({
   approachZone = null,
   gimbalYaw = null,
   gimbalPitch = null,
+  gimbalTargetLocked = false,
   boatPitch = null,
   boatRoll = null,
 }) => {
   const isApproaching = phase === "APPROACHING";
-  // Ladder detection status
-  const ladderDetected = detections.some(
-    (d) => d.label?.toLowerCase() === "ladder"
-  );
-  const ladderConfidence = detections.find(
-    (d) => d.label?.toLowerCase() === "ladder"
-  )?.confidence;
 
-  const ladderLabel = ladderDetected
-    ? `TRACKING ${(ladderConfidence * 100).toFixed(0)}%`
-    : "SEARCHING";
-  const ladderColor = ladderDetected ? "#00ff88" : "#ffaa00";
+  // ── Ladder acquisition status — phase-aware semantics.
+  //
+  // APPROACHING: gimbal is parked at home by phase_manager. We don't care
+  //   about lock state yet — the card is purely informational: "is the
+  //   ladder in view at all?". Avoids confusing LOCKED labels before we
+  //   even enter the working zone.
+  //
+  // ZONING / HOLDING: full 4-state acquisition logic combining CV detection
+  //   + /gimbal/target_locked (plumbed through ws_server.py → useMaritimeData):
+  //     locked + detected    → LOCKED   (green)
+  //     locked + not detected → LOST    (red, attention)
+  //     unlocked + detected  → ACQUIRING (amber, gimbal slewing on target)
+  //     unlocked + nothing   → SEARCHING (amber)
+  const ladderDet = detections.find((d) => d.label?.toLowerCase() === "ladder");
+  const ladderDetected = !!ladderDet;
+  const ladderConfidence = ladderDet?.confidence;
+
+  let ladderLabel, ladderColor;
+  if (phase === "APPROACHING") {
+    if (ladderDetected) {
+      ladderLabel = `VISIBLE ${(ladderConfidence * 100).toFixed(0)}%`;
+      ladderColor = "#889aab"; // informational muted — not a call to action yet
+    } else {
+      ladderLabel = "NOT IN VIEW";
+      ladderColor = "#556677";
+    }
+  } else if (gimbalTargetLocked && ladderDetected) {
+    ladderLabel = `LOCKED ${(ladderConfidence * 100).toFixed(0)}%`;
+    ladderColor = "#00ff88";
+  } else if (gimbalTargetLocked && !ladderDetected) {
+    ladderLabel = "LOST";
+    ladderColor = "#ff2222";
+  } else if (ladderDetected) {
+    ladderLabel = `ACQUIRING ${(ladderConfidence * 100).toFixed(0)}%`;
+    ladderColor = "#ffaa00";
+  } else {
+    ladderLabel = "SEARCHING";
+    ladderColor = "#ffaa00";
+  }
 
   // Heading alignment
   const headingLabel =
