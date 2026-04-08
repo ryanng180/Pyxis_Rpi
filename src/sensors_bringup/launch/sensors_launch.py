@@ -89,8 +89,8 @@ def generate_launch_description():
             name='scan_filter_node',
             output='screen',
             parameters=[{
-                'outward_min_deg':  80.0,    # tabletop testing
-                'outward_max_deg': 100.0,   # tabletop testing
+                'outward_min_deg':   0.0,    # full starboard arc (bow to stern)
+                'outward_max_deg': 180.0,
                 'min_range':  0.3,
                 'max_range': 16.0,
             }]
@@ -140,6 +140,8 @@ def generate_launch_description():
                 'too_close_m':   0.3,     # placeholder — tune during sea trials
                 'too_far_m':     1.0,     # placeholder — tune during sea trials
                 'scan_topic': '/scan/transformed',  # tilt-corrected; use /scan/filtered for tabletop testing
+                'arc_min_deg':  60.0,     # restrict proximity to perpendicular hull region
+                'arc_max_deg': 120.0,     # (scan_filter is wide 0-180° for ladder calibration)
             }]
         ),
 

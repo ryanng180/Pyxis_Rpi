@@ -88,14 +88,14 @@ class Config:
     VFOV_DEG            = 114.5                 #114.5
 
     # --- Yaw PID gains (tune on vessel) ---
-    PAN_KP              = 0.24
-    PAN_KI              = 1.00
-    PAN_KD              = 0.20
+    PAN_KP              = 0.24 #0.60 # 0.24
+    PAN_KI              = 1.00 #1.0 # 1.00
+    PAN_KD              = 0.2 #0.40 # 0.20 
 
     # --- Pitch PID gains (tune on vessel) ---
-    TILT_KP             = 0.15
-    TILT_KI             = 0.70
-    TILT_KD             = 0.10
+    TILT_KP             = 0.15 # 0.15
+    TILT_KI             = 0.7 # 0.70
+    TILT_KD             = 0.1 # 0.10
 
     # --- Sea-state low-pass filter (0 < alpha <= 1, lower = smoother) ---
     SMOOTHING_ALPHA     = 0.5
